@@ -2,7 +2,8 @@
 
 A standalone vanilla JavaScript ES module library. Version 0.1.0 is private and
 in development. The timeline core evaluates transform, opacity, and SVG path tracks
-at arbitrary times without a DOM, browser clock, or playback controller.
+at arbitrary times without a DOM or browser clock. An optional playback controller
+adds elapsed-time scheduling without applying values to targets.
 
 ## Timeline API
 
@@ -70,6 +71,66 @@ element's bounding-box center, not the SVG viewport origin. Values describe
 individual transform properties rather than baked geometry or transform matrices.
 The core only evaluates data: bounding-box measurement, transform composition,
 and application to SVG/DOM targets remain the responsibility of T06 adapters.
+
+## Playback API
+
+```js
+import { createPlaybackController } from 'motion-engine';
+
+const playback = createPlaybackController(timeline, {
+  loop: false,
+  direction: 1,
+  onUpdate(time, values) {
+    // time is in seconds; values is timeline.evaluate(time).
+  },
+});
+
+playback.play();
+playback.pause();
+playback.seek(1);
+playback.reverse();
+playback.restart();
+playback.setLoop(true);
+playback.state; // { time, duration, playing, direction, loop }
+```
+
+Creation is paused and emits nothing. Direction is `1` (forward, starting at zero)
+or `-1` (backward, starting at duration). `loop` is a boolean, defaulting to `false`;
+both options are readable in state, and `reverse()` toggles direction.
+
+- `play()` resumes the current position and emits immediately. Repeated calls
+  while playing do nothing. At a nonlooping endpoint it emits but stays stopped;
+  use `restart()` to play again from the current direction's starting boundary.
+- `pause()` accounts for elapsed time since the last frame, cancels the pending
+  frame, and emits the paused position. Already-paused calls do nothing.
+- `seek(seconds)` clamps finite times to `[0, duration]` and emits immediately.
+  It preserves paused/running status except that seeking to the current direction's
+  nonlooping endpoint stops playback. It resets the running clock baseline.
+- `reverse()` first accounts for elapsed time in the old direction, then flips
+  direction without jumping or starting paused playback. It emits immediately.
+- `restart()` resets to zero when forward or duration when backward and plays.
+- `setLoop(enabled)` accepts only a boolean and updates `state.loop` immediately.
+  It preserves position, paused/running status, and the pending frame without
+  emitting or resetting the clock. The next time sample uses the new setting;
+  disabling looping lets playback stop at the next boundary.
+- `state` returns a frozen snapshot. `time` is the latest sampled position, updated
+  by frames and controls; reading state does not advance time or emit callbacks.
+
+Each update receives `(time, values)` with fresh results from the unchanged
+timeline evaluator. Nonlooping playback clamps and stops at boundaries; looping
+wraps and retains elapsed overshoot, including across multiple cycles (exact
+cycle multiples wrap to zero). Zero-duration timelines emit at zero and stay
+stopped even with looping enabled. Callback errors stop playback and propagate.
+No values are applied to DOM, SVG, or other targets.
+
+Scheduling defaults to `requestAnimationFrame` / `cancelAnimationFrame` and
+`performance.now()`. For deterministic tests or nonbrowser hosts, inject
+`{ now, requestFrame, cancelFrame }` alongside the other options: `now()` returns
+monotonic milliseconds, `requestFrame(callback)` queues an asynchronous one-shot
+callback and returns its ID, and `cancelFrame(id)` cancels it. Every elapsed-time
+sample uses `now()`; frame callback timestamps are ignored. Pause/resume excludes
+paused time, while delays during active playback count in full. Only one frame
+is pending at a time. Creation and paused seeking need no browser globals.
 
 ## SVG path geometry and vertex animation
 
@@ -162,7 +223,7 @@ outside the core.
 Use Node.js 22 or newer. No dependencies, installation step, or build step are
 required.
 
-Run the import smoke test and focused timeline/geometry tests with Node's built-in runner:
+Run the import smoke test and focused timeline/geometry/playback tests with Node's built-in runner:
 
 ```sh
 npm test
