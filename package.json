@@ -1,0 +1,11 @@
+{
+  "name": "motion-engine",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "A standalone vanilla JavaScript ES module library.",
+  "exports": "./src/index.js",
+  "scripts": {
+    "test": "node --test test/import.test.js test/timeline.test.js"
+  }
+}
