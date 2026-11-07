@@ -1,5 +1,7 @@
 import { transitionEase, validateEase } from './easing.js';
 import { snapshotValue, validateProperty } from './properties.js';
+import { parsePath } from './parsePath.js';
+import { validatePathCompatibility } from './pathInterpolation.js';
 
 // Validate and snapshot once so evaluation never sorts or reads caller-owned data.
 export function compileTimeline(model) {
@@ -37,9 +39,11 @@ export function compileTimeline(model) {
       }
       validateEase(keyframe.easeToNext);
       validateEase(keyframe.ease);
+      const value = snapshotValue(property, keyframe.value);
       return {
         time: keyframe.time,
-        value: snapshotValue(property, keyframe.value),
+        value,
+        ...(property === 'path' ? { geometry: parsePath(value) } : {}),
         easeToNext: keyframe.easeToNext,
         ease: keyframe.ease,
       };
@@ -51,6 +55,9 @@ export function compileTimeline(model) {
       }
     }
     for (let index = 0; index < keyframes.length - 1; index += 1) {
+      if (property === 'path') {
+        validatePathCompatibility(keyframes[index].geometry, keyframes[index + 1].geometry);
+      }
       keyframes[index].easing = transitionEase(keyframes[index], keyframes[index + 1]);
     }
     return { targetId, property, keyframes };

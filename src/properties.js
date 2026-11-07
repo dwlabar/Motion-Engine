@@ -1,10 +1,14 @@
 export function validateProperty(property) {
-  if (!['position', 'scale', 'rotation', 'opacity'].includes(property)) {
+  if (!['position', 'scale', 'rotation', 'opacity', 'path'].includes(property)) {
     throw new TypeError(`Unsupported property: ${property}.`);
   }
 }
 
 export function snapshotValue(property, value) {
+  if (property === 'path') {
+    if (typeof value !== 'string') throw new TypeError('Path requires an SVG d string.');
+    return value;
+  }
   if (property === 'position') {
     if (!value || typeof value !== 'object' || Array.isArray(value)
       || !Number.isFinite(value.x) || !Number.isFinite(value.y)) {

@@ -94,7 +94,7 @@ test('position snapshots and results are independent at boundaries, holds, and e
 });
 
 test('rejects unsupported properties, malformed coordinates, and nonnumeric scalars', () => {
-  for (const property of ['x', 'y', 'path', 'unknown']) {
+  for (const property of ['x', 'y', 'unknown']) {
     assert.throws(() => timeline(property, []), TypeError);
   }
   for (const value of [null, undefined, 1, '1', [], { x: 1 }, { y: 2 },
