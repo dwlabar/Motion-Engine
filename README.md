@@ -1,7 +1,7 @@
 # Motion Engine
 
 A standalone vanilla JavaScript ES module library. Version 0.1.0 is private and
-in development. The timeline core evaluates numeric property tracks at arbitrary
+in development. The timeline core evaluates transform and opacity tracks at arbitrary
 times without a DOM, browser clock, or playback controller.
 
 ## Timeline API
@@ -20,13 +20,14 @@ const timeline = createTimeline({
 });
 
 timeline.duration; // 2 seconds
-timeline.evaluate(1); // [{ targetId: 'box', property: 'opacity', value: 0.5 }]
+timeline.evaluate(1); // [{ targetId: 'box', property: 'opacity', value: 0.75 }]
 ```
 
 Times are absolute seconds. Evaluation clamps finite times to `[0, duration]`,
 omits tracks before their first keyframe, and holds their final value afterward.
 Empty tracks produce no results; a single keyframe holds from its timestamp.
-Results follow input track order and each call returns a fresh array and records.
+Results follow input track order and each call returns a fresh array, records,
+and position objects, including at exact keyframes and during final holds.
 
 Creation validates and snapshots the model, sorting private keyframe copies once.
 Seeking uses binary search with no history-dependent state or per-call sorting.
@@ -40,10 +41,34 @@ tracks and duplicate timestamps within a track are rejected. Unsorted timestamps
 are accepted. Invalid timing at creation throws `RangeError`; invalid shapes,
 values, or nonfinite/non-numeric evaluation times throw `TypeError`.
 
-T02 supports finite numeric values with linear interpolation and preserves exact
-keyframe values at their timestamps. Optional easing metadata (`easeToNext` and
-legacy `ease`) is accepted but ignored until T03. Object/transform and path
-values are rejected until their interpolation is implemented in T03/T04.
+The schema remains version `1`. Supported properties are:
+
+- `position`: an object with finite numeric `x` and `y`, interpolated independently.
+- `scale`: a finite number for uniform scaling on both axes.
+- `rotation`: a finite number in degrees, interpolated without wrapping or choosing
+  a shortest path (350 to 10 passes through 180).
+- `opacity`: a finite number. The evaluator does not clamp property values;
+  negative scales and rotations spanning multiple turns are also supported.
+
+Exact keyframe values are preserved at their timestamps. Unsupported properties,
+malformed values, and unsupported easing throw `TypeError` at creation.
+Path interpolation is deferred to T04.
+
+Each segment uses its starting keyframe's `easeToNext`, otherwise its ending
+keyframe's legacy `ease`, otherwise `power1.out`. Supported presets are `none`
+(linear), and `power1`, `power2`, `power3` with `.in`, `.out`, or `.inOut`.
+These power families use quadratic, cubic, and quartic curves respectively.
+Easing fields may be omitted or `undefined`; other values must name a supported
+preset, even when overridden or on an unused endpoint. Set `easeToNext: 'none'`
+on a segment's starting keyframe for the linear behavior used in T02.
+Both coordinates of a position segment use the same eased progress.
+
+SVG transform semantics follow the editor reference: position represents x/y
+translation in SVG user units; uniform scale and rotation act around the SVG
+element's bounding-box center, not the SVG viewport origin. Values describe
+individual transform properties rather than baked geometry or transform matrices.
+The core only evaluates data: bounding-box measurement, transform composition,
+and application to SVG/DOM targets remain the responsibility of T06 adapters.
 
 ## Development
 

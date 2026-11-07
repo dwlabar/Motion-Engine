@@ -1,4 +1,5 @@
 import { compileTimeline } from './compileTimeline.js';
+import { interpolateValue, snapshotValue } from './properties.js';
 
 export function createTimeline(model) {
   const { duration, tracks } = compileTimeline(model);
@@ -24,11 +25,12 @@ export function createTimeline(model) {
 
       const from = keyframes[low - 1];
       const to = keyframes[low];
-      let value = from.value;
+      let value;
       if (to && clampedTime !== from.time) {
         const progress = (clampedTime - from.time) / (to.time - from.time);
-        // Weighted terms avoid overflow when finite endpoints have opposite signs.
-        value = from.value * (1 - progress) + to.value * progress;
+        value = interpolateValue(property, from.value, to.value, from.easing(progress));
+      } else {
+        value = snapshotValue(property, from.value);
       }
       results.push({ targetId, property, value });
     }

@@ -6,6 +6,6 @@
   "description": "A standalone vanilla JavaScript ES module library.",
   "exports": "./src/index.js",
   "scripts": {
-    "test": "node --test test/import.test.js test/timeline.test.js"
+    "test": "node --test test/import.test.js test/timeline.test.js test/transforms.test.js"
   }
 }

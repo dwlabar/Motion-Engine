@@ -1,3 +1,6 @@
+import { transitionEase, validateEase } from './easing.js';
+import { snapshotValue, validateProperty } from './properties.js';
+
 // Validate and snapshot once so evaluation never sorts or reads caller-owned data.
 export function compileTimeline(model) {
   if (!model || model.version !== 1 || !Array.isArray(model.tracks)) {
@@ -16,6 +19,7 @@ export function compileTimeline(model) {
       throw new TypeError('Tracks require nonempty targetId/property strings and a keyframes array.');
     }
     const { targetId, property } = track;
+    validateProperty(property);
     let properties = identities.get(targetId);
     if (!properties) {
       properties = new Set();
@@ -31,16 +35,23 @@ export function compileTimeline(model) {
         || keyframe.time < 0 || keyframe.time > duration) {
         throw new RangeError('Keyframe time must be finite and within the model duration.');
       }
-      if (!Number.isFinite(keyframe.value)) {
-        throw new TypeError('T02 keyframe values must be finite numbers.');
-      }
-      return { time: keyframe.time, value: keyframe.value };
+      validateEase(keyframe.easeToNext);
+      validateEase(keyframe.ease);
+      return {
+        time: keyframe.time,
+        value: snapshotValue(property, keyframe.value),
+        easeToNext: keyframe.easeToNext,
+        ease: keyframe.ease,
+      };
     }).sort((a, b) => a.time - b.time);
 
     for (let index = 1; index < keyframes.length; index += 1) {
       if (keyframes[index - 1].time === keyframes[index].time) {
         throw new RangeError(`Duplicate keyframe time in ${targetId}/${property}.`);
       }
+    }
+    for (let index = 0; index < keyframes.length - 1; index += 1) {
+      keyframes[index].easing = transitionEase(keyframes[index], keyframes[index + 1]);
     }
     return { targetId, property, keyframes };
   });

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createTimeline } from 'motion-engine';
 
-const frame = (time, value) => ({ time, value });
+const frame = (time, value) => ({ time, value, easeToNext: 'none' });
 const track = (keyframes, targetId = 'box', property = 'opacity') => ({
   targetId, property, keyframes,
 });
@@ -23,14 +23,14 @@ test('interpolates numeric values and preserves every exact boundary', () => {
 
 test('independent overlapping tracks retain model order and absolute timing', () => {
   const timeline = createTimeline(model([
-    track([frame(0, 0), frame(4, 8)], 'a', 'x'),
-    track([frame(1, 10), frame(3, 30)], 'a', 'y'),
-    track([frame(2, 100), frame(4, 200)], 'b', 'x'),
+    track([frame(0, 0), frame(4, 8)], 'a', 'scale'),
+    track([frame(1, 10), frame(3, 30)], 'a', 'rotation'),
+    track([frame(2, 100), frame(4, 200)], 'b', 'scale'),
   ]));
   assert.deepEqual(timeline.evaluate(2), [
-    result(4, 'a', 'x'), result(20, 'a', 'y'), result(100, 'b', 'x'),
+    result(4, 'a', 'scale'), result(20, 'a', 'rotation'), result(100, 'b', 'scale'),
   ]);
-  assert.deepEqual(timeline.evaluate(0), [result(0, 'a', 'x')]);
+  assert.deepEqual(timeline.evaluate(0), [result(0, 'a', 'scale')]);
 });
 
 test('empty models/tracks and single keyframes omit then hold', () => {
@@ -66,7 +66,7 @@ test('unsorted input and out-of-order seeks are deterministic; results are indep
   assert.deepEqual(timeline.evaluate(2), [result(4)]);
 });
 
-test('never mutates frozen input, ignores easing, and snapshots caller data', () => {
+test('never mutates frozen input, applies easing, and snapshots caller data', () => {
   const input = model([track([
     { time: 4, value: 8, ease: 'power1.out' },
     { time: 0, value: 0, easeToNext: 'power2.in' },
@@ -80,7 +80,7 @@ test('never mutates frozen input, ignores easing, and snapshots caller data', ()
   }
   freeze(input);
   const timeline = createTimeline(input);
-  assert.deepEqual(timeline.evaluate(2), [result(4)]);
+  assert.deepEqual(timeline.evaluate(2), [result(1)]);
   assert.deepEqual(input, original);
   const mutable = structuredClone(input);
   const snapshot = createTimeline(mutable);
@@ -89,7 +89,7 @@ test('never mutates frozen input, ignores easing, and snapshots caller data', ()
   mutable.tracks[0].keyframes[0].value = 500;
   mutable.tracks.reverse();
   assert.equal(snapshot.duration, 10);
-  assert.deepEqual(snapshot.evaluate(2), [result(4)]);
+  assert.deepEqual(snapshot.evaluate(2), [result(1)]);
 });
 
 test('rejects invalid model shapes, identifiers, and unsupported values', () => {
