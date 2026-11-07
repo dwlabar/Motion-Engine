@@ -3,7 +3,8 @@
 A standalone vanilla JavaScript ES module library. Version 0.1.0 is private and
 in development. The timeline core evaluates transform, opacity, and SVG path tracks
 at arbitrary times without a DOM or browser clock. An optional playback controller
-adds elapsed-time scheduling without applying values to targets.
+adds elapsed-time scheduling. Optional target adapters apply evaluated snapshots
+to HTML, SVG, or JavaScript objects without adding DOM dependencies to the core.
 
 ## Timeline API
 
@@ -70,7 +71,67 @@ translation in SVG user units; uniform scale and rotation act around the SVG
 element's bounding-box center, not the SVG viewport origin. Values describe
 individual transform properties rather than baked geometry or transform matrices.
 The core only evaluates data: bounding-box measurement, transform composition,
-and application to SVG/DOM targets remain the responsibility of T06 adapters.
+and application to SVG/DOM targets are handled by the optional target adapters.
+
+## Target adapters
+
+```js
+import { createSVGAdapter, createPlaybackController } from 'motion-engine';
+
+const adapter = createSVGAdapter({ outline: document.querySelector('#outline') });
+adapter.apply(pathTimeline.evaluate(1));
+
+const playback = createPlaybackController(pathTimeline, {
+  onUpdate: (_time, values) => adapter.apply(values),
+});
+playback.seek(0);
+playback.pause();
+adapter.reset();
+```
+
+`createSVGAdapter(targets)`, `createHTMLAdapter(targets)`, and
+`createObjectAdapter(targets)` accept a `Map` or an object keyed by `targetId`.
+Mappings are copied at creation; IDs must be nonempty strings and each target
+must have one ID per adapter. Each factory returns `{ apply, reset }`.
+
+- All adapters support `position`, uniform `scale`, `rotation`, and `opacity`.
+  SVG `path` values write the `d` attribute and require a `<path>` element.
+  Object adapters write the five schema properties directly (including `path`),
+  copying position values; they accept writable data properties and extensible
+  objects, and reject DOM elements and accessor properties.
+- `apply(results)` takes the array returned by `timeline.evaluate()`. Each call
+  is a complete snapshot: previously applied properties absent from the array
+  restore their original values. Seeking before the first keyframe therefore
+  clears later animation state. Unrelated target IDs are ignored, so the same
+  mixed-target evaluation can be passed directly to separate adapters. For matched
+  targets, duplicate properties, invalid values, malformed paths, and invalid
+  target/property combinations throw `TypeError` before writes.
+- Creation captures original values, computed transforms, and SVG bounds. HTML
+  transforms compose as `translate(position) rotate(rotation) scale(scale) base`,
+  retaining the existing CSS transform origin. SVG transforms compose as
+  `translate(position) base rotate/scale-about-center`, accounting for the base's
+  original CSS origin. Transform functions apply right to left. Position uses
+  CSS pixels for HTML and user units for SVG. SVG scale/rotation use the original
+  bounding-box center, held fixed even while path data changes. Missing transform
+  channels use zero translation/rotation and scale one.
+- DOM adapters preserve original transform attributes, unrelated styles, and
+  existing computed transforms (including stylesheet rules). They temporarily
+  write inline `transform` and `opacity` with `!important`; SVG transforms also
+  temporarily use a zero origin and `view-box` reference box with the original
+  origin included in the composed transform. Repeated application always starts
+  from the captured baseline, never the previous frame.
+- `reset()` restores original inline declarations and priorities, original `d`
+  values or absence, and object property descriptors or absence. It is safe to
+  call repeatedly. It does not pause a playback controller; pause before reset
+  if playback should stop applying values.
+
+Create DOM adapters after targets are mounted and measurable. SVG targets need
+`getBBox()` and DOM targets need their document's `getComputedStyle()`. Adapters
+do not remeasure layout, react to stylesheet changes, or coordinate concurrent
+CSS animations/transitions or other writers on the same properties. Recreate an
+adapter after resetting it when the baseline changes. SVG stroke-box measurement
+depends on the host's `getBBox({ stroke: true })` support. The timeline and playback
+controller remain usable in Node without DOM globals.
 
 ## Playback API
 
@@ -223,11 +284,19 @@ outside the core.
 Use Node.js 22 or newer. No dependencies, installation step, or build step are
 required.
 
-Run the import smoke test and focused timeline/geometry/playback tests with Node's built-in runner:
+Run the import smoke test and focused timeline/geometry/playback/adapter tests with Node's built-in runner:
 
 ```sh
 npm test
 ```
+
+Run adapter tests alone with `node --test test/targetAdapters.test.js`. The DOM
+unit tests use small host doubles. Serve the repository with any static server
+and open `test/targetAdapters.browser.html` for real-browser transform/center/reset
+checks; its report should read `PASS`. These checks follow the
+[CSS transform reference-box rules](https://www.w3.org/TR/css-transforms/#transform-box).
+The fixture has been checked in desktop Edge; other browsers and mobile remain
+part of T08 compatibility verification.
 
 `src/index.js` is the public entry point. Keep implementation modules in `src/`
 and focused tests in `test/`. Use vanilla JavaScript ES modules and 2-space

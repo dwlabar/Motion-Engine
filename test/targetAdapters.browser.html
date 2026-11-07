@@ -1,0 +1,57 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Motion Engine adapter browser checks</title>
+<style>
+  .html-target { width: 40px; height: 60px; transform: skewX(12deg); opacity: .3; }
+  .svg-target { transform-box: fill-box; transform-origin: 25% 50%; transform: rotate(20deg); }
+</style>
+<div class="html-target"></div>
+<svg width="200" height="100" viewBox="0 0 200 100">
+  <path d="M10 20H50V80H10Z" transform="translate(5 6)"></path>
+  <path class="svg-target" d="M10 20H50V80H10Z"></path>
+</svg>
+<svg width="200" height="100" viewBox="10 20 200 100">
+  <path d="M10 20H50V80H10Z" transform="translate(5 6)"></path>
+</svg>
+<pre id="report">RUNNING</pre>
+<script type="module">
+  import { createSVGAdapter, createHTMLAdapter } from '../src/index.js';
+
+  const close = (a, b) => {
+    if (Math.abs(a - b) > 0.00001) throw new Error(`${a} != ${b}`);
+  };
+  try {
+    for (const box of document.querySelectorAll('path')) {
+      const originalStyle = box.getAttribute('style');
+      const baseline = box.getCTM();
+      const center = new DOMPoint(30, 50).matrixTransform(baseline);
+      const adapter = createSVGAdapter({ box });
+      const values = [{ targetId: 'box', property: 'scale', value: 2 }];
+      adapter.apply(values);
+      let actual = new DOMPoint(30, 50).matrixTransform(box.getCTM());
+      close(actual.x, center.x);
+      close(actual.y, center.y);
+      close(box.getCTM().a, baseline.a * 2);
+      close(box.getCTM().b, baseline.b * 2);
+      adapter.apply(values);
+      actual = new DOMPoint(30, 50).matrixTransform(box.getCTM());
+      close(actual.x, center.x);
+      close(actual.y, center.y);
+      adapter.reset();
+      for (const key of ['a', 'b', 'c', 'd', 'e', 'f']) close(box.getCTM()[key], baseline[key]);
+      if ((box.getAttribute('style') || '') !== (originalStyle || '')) throw new Error('SVG styles not restored');
+    }
+    const box = document.querySelector('div');
+    const baseline = getComputedStyle(box).transform;
+    const adapter = createHTMLAdapter({ box });
+    adapter.apply([{ targetId: 'box', property: 'position', value: { x: 12, y: 8 } }]);
+    const matrix = new DOMMatrix(getComputedStyle(box).transform);
+    close(matrix.e, 12);
+    close(matrix.f, 8);
+    adapter.reset();
+    if (getComputedStyle(box).transform !== baseline) throw new Error('HTML transform not restored');
+    document.querySelector('#report').textContent = 'PASS: SVG centers, baseline transforms, repeat application, reset, and HTML composition';
+  } catch (error) {
+    document.querySelector('#report').textContent = `FAIL: ${error.stack}`;
+  }
+</script>
