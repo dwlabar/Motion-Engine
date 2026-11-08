@@ -11,7 +11,7 @@
 | T05 | Playback Controller | DONE | Implemented play, pause, seek, reverse, restart, configurable looping/direction, readable state, evaluated callbacks, and injectable elapsed-time frame scheduling. Focused playback and scheduling tests added; timeline evaluation remains unchanged. |
 | T06 | Target Adapters | DONE | Implemented dependency-free SVG, HTML, and object adapters with snapshot application, baseline transform composition, fixed SVG center origins, validation, and restoration. Focused adapter/playback tests and desktop Edge geometry checks pass; review fixes completed. Core remains DOM-independent. |
 | T07 | Dependency-Free Animation Export | DONE | Implemented standalone browser ES module output using shared engine functions, scoped SVG/HTML target resolution, paused playback/reset controls, precise safe serialization, generated-module parity tests, and a minimal SVG browser fixture. |
-| T08 | Compatibility and Performance Verification | PLANNED (NEXT) | Verify animation behavior against the existing GSAP editor, including transforms, vertex animation, timeline accuracy, export, and focused desktop/mobile performance checks. |
+| T08 | Compatibility and Performance Verification | DONE | Compared the read-only GSAP editor playback builder, easing, nested SVG transforms, compatible paths/vertices, timing, boundaries, and holds; verified standalone export playback/reset. Added dependency-free desktop/mobile-emulated browser verification and separate evaluation/application benchmarks. Findings, tolerances, intentional differences, and unverified environments are recorded in docs/T08-VERIFICATION.md. No runtime corrections were required. |
 
 ## Scope restrictions
 

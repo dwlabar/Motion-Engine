@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motion Engine T08 verification</title>
+<style>svg { width: 360px; height: 180px; } pre { white-space: pre-wrap; }</style>
+<script type="importmap">
+{"imports":{"gsap":"/reference/node_modules/gsap/index.js","gsap/MorphSVGPlugin":"/reference/node_modules/gsap/MorphSVGPlugin.js"}}
+</script>
+<pre id="report">RUNNING</pre>
+<div id="stage"></div>
+<script type="module">
+  import { compatibility } from './verification/compatibility.js';
+  import { performanceChecks } from './verification/performance.js';
+  try {
+    const comparisons = await compatibility();
+    const measurements = await performanceChecks();
+    window.verification = { comparisons, measurements, environment: {
+      userAgent: navigator.userAgent, hardwareConcurrency: navigator.hardwareConcurrency,
+      viewport: [innerWidth, innerHeight], devicePixelRatio, touchPoints: navigator.maxTouchPoints,
+    } };
+    document.querySelector('#report').textContent = JSON.stringify(window.verification, null, 2);
+  } catch (error) {
+    window.verification = { error: error.stack };
+    document.querySelector('#report').textContent = error.stack;
+  }
+</script>

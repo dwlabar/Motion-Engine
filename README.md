@@ -334,8 +334,10 @@ unit tests use small host doubles. Serve the repository with any static server
 and open `test/targetAdapters.browser.html` for real-browser transform/center/reset
 checks; its report should read `PASS`. These checks follow the
 [CSS transform reference-box rules](https://www.w3.org/TR/css-transforms/#transform-box).
-The fixture has been checked in desktop Edge; other browsers and mobile remain
-part of T08 compatibility verification.
+The fixtures have been checked in desktop and mobile-emulated headless Edge.
+Physical mobile devices and other browser engines remain unverified. See
+[T08 verification findings](docs/T08-VERIFICATION.md) for the reproducible browser
+comparison command, numerical tolerances, performance measurements, and limitations.
 
 `src/index.js` is the public entry point. Keep implementation modules in `src/`
 and focused tests in `test/`. Use vanilla JavaScript ES modules and 2-space
