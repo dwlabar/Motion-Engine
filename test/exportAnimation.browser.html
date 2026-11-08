@@ -1,0 +1,80 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Motion Engine export browser fixture</title>
+<svg id="stage" width="360" height="180" viewBox="0 0 360 180" aria-label="Animated blue shape">
+  <path id="shape" d="M20 20H60V60H20Z" fill="royalblue" transform="translate(10 15)"></path>
+</svg>
+<p>
+  <button data-control="play">Play</button>
+  <button data-control="pause">Pause</button>
+  <button data-control="reverse">Reverse</button>
+  <button data-control="restart">Restart</button>
+  <button data-control="reset">Reset</button>
+  <label>Seek <input id="seek" type="range" min="0" max="3" step="0.01" value="0"></label>
+  <label><input id="loop" type="checkbox"> Loop</label>
+</p>
+<pre id="report">RUNNING</pre>
+<script type="module">
+  import { exportAnimation, createTimeline } from '../src/index.js';
+
+  const model = { version: 1, duration: 3, tracks: [
+    { targetId: 'shape', property: 'position', keyframes: [
+      { time: .5, value: { x: 0, y: 0 }, easeToNext: 'none' },
+      { time: 2.5, value: { x: 180, y: 60 } },
+    ] },
+    { targetId: 'shape', property: 'scale', keyframes: [{ time: .5, value: 1 }, { time: 2.5, value: 1.5 }] },
+    { targetId: 'shape', property: 'rotation', keyframes: [{ time: .5, value: 0 }, { time: 2.5, value: 180 }] },
+    { targetId: 'shape', property: 'opacity', keyframes: [{ time: .5, value: 1 }, { time: 2.5, value: .4 }] },
+    { targetId: 'shape', property: 'path', keyframes: [
+      { time: .5, value: 'M20 20H60V60H20Z', easeToNext: 'power2.inOut' },
+      { time: 2.5, value: 'M10 10H70V70H10Z' },
+    ] },
+  ] };
+  const check = (condition, message) => { if (!condition) throw new Error(message); };
+  const close = (a, b) => Math.abs(a - b) < .00001;
+  const report = document.querySelector('#report');
+  let animation;
+  try {
+    // Only authoring uses the library. The Blob contains the complete exported module.
+    const url = URL.createObjectURL(new Blob([exportAnimation(model)], { type: 'text/javascript' }));
+    let createAnimation;
+    try { ({ createAnimation } = await import(url)); }
+    finally { URL.revokeObjectURL(url); }
+    const root = document.querySelector('#stage');
+    const shape = root.querySelector('#shape');
+    const originalPath = shape.getAttribute('d');
+    const baseline = shape.getCTM();
+    const timeline = createTimeline(model);
+    animation = createAnimation(root);
+    check(!animation.state.playing && !shape.getAttribute('style'), 'Must start paused without writes');
+    for (const time of [3, 1.5, .5, 2.5]) {
+      animation.seek(time);
+      const expected = timeline.evaluate(time);
+      check(shape.getAttribute('d') === expected.find((entry) => entry.property === 'path').value, 'Path parity');
+      check(close(Number(getComputedStyle(shape).opacity), expected.find((entry) => entry.property === 'opacity').value), 'Opacity parity');
+      const position = expected.find((entry) => entry.property === 'position').value;
+      const center = new DOMPoint(40, 40).matrixTransform(shape.getCTM());
+      check(close(center.x, 50 + position.x) && close(center.y, 55 + position.y), 'SVG center and translation');
+    }
+    animation.seek(0);
+    check(shape.getAttribute('d') === originalPath && !shape.style.transform, 'Seek before first key restores baseline');
+    animation.play();
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    animation.pause();
+    check(animation.state.time > 0 && !animation.state.playing, 'Browser frame playback');
+    animation.seek(1.5);
+    animation.reset();
+    check(shape.getAttribute('d') === originalPath && !shape.style.transform, 'Reset restores path and style');
+    for (const key of ['a', 'b', 'c', 'd', 'e', 'f']) check(close(shape.getCTM()[key], baseline[key]), 'Reset restores geometry');
+    animation.seek(0);
+    document.querySelectorAll('[data-control]').forEach((button) => {
+      button.addEventListener('click', () => animation[button.dataset.control]());
+    });
+    document.querySelector('#seek').addEventListener('input', (event) => animation.seek(Number(event.target.value)));
+    document.querySelector('#loop').addEventListener('change', (event) => animation.setLoop(event.target.checked));
+    report.textContent = 'PASS: standalone module, paused start, SVG geometry/path/opacity parity, seeking, browser frames, reset';
+  } catch (error) {
+    animation?.reset();
+    report.textContent = `FAIL: ${error.stack}`;
+  }
+</script>

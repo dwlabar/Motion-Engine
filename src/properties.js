@@ -22,7 +22,7 @@ export function snapshotValue(property, value) {
   return value;
 }
 
-function interpolateNumber(from, to, progress) {
+export function interpolateNumber(from, to, progress) {
   // Weighted terms avoid overflow when finite endpoints have opposite signs.
   return from * (1 - progress) + to * progress;
 }

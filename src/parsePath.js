@@ -1,11 +1,10 @@
 import { arcToCubics } from './pathArc.js';
 import { validatePath } from './pathGeometry.js';
 
-const numberPattern = /[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/y;
-const arities = { M: 2, L: 2, H: 1, V: 1, C: 6, S: 4, Q: 4, T: 2, A: 7 };
-const whitespace = /[\t\n\f\r ]/;
-
 export function parsePath(value) {
+  const numberPattern = /[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/y;
+  const arities = { M: 2, L: 2, H: 1, V: 1, C: 6, S: 4, Q: 4, T: 2, A: 7 };
+  const whitespace = /[\t\n\f\r ]/;
   if (typeof value !== 'string') throw new TypeError('Path requires an SVG d string.');
   let cursor = 0;
   const fail = () => { throw new TypeError(`Invalid SVG path at offset ${cursor}.`); };

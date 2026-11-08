@@ -1,8 +1,6 @@
 import { createTargetAdapter } from './targetAdapter.js';
 
-const namespaces = { html: 'http://www.w3.org/1999/xhtml', svg: 'http://www.w3.org/2000/svg' };
-
-function saveStyle(style, key) {
+export function saveStyle(style, key) {
   const value = style.getPropertyValue(key);
   const priority = style.getPropertyPriority(key);
   return () => {
@@ -11,7 +9,7 @@ function saveStyle(style, key) {
   };
 }
 
-function svgCenter(target, computed) {
+export function svgCenter(target, computed) {
   const bounds = target.getBBox();
   const viewport = target.ownerSVGElement ?? target;
   const viewBox = viewport.viewBox?.baseVal;
@@ -44,6 +42,7 @@ function svgCenter(target, computed) {
 }
 
 export function createDOMAdapter(targets, kind) {
+  const namespaces = { html: 'http://www.w3.org/1999/xhtml', svg: 'http://www.w3.org/2000/svg' };
   return createTargetAdapter(targets, (target) => {
     if (!target || target.nodeType !== 1 || target.namespaceURI !== namespaces[kind]
       || !target.style || typeof target.ownerDocument?.defaultView?.getComputedStyle !== 'function'

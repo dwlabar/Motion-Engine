@@ -279,6 +279,45 @@ rendering a valid prefix. Geometry uses JavaScript floating-point arithmetic.
 Browser measurement, pointer handling, authoring UI, and SVG application remain
 outside the core.
 
+## Standalone JavaScript export
+
+`exportAnimation(model)` validates and snapshots a schema-1 model and returns
+the source of a self-contained browser ES module. Save the string as a `.js`
+file; it has no imports, dependencies, or dynamic code evaluation.
+
+```js
+import { exportAnimation } from 'motion-engine';
+const source = exportAnimation(model); // Save as animation.js.
+```
+
+In the destination page:
+
+```js
+import { createAnimation } from './animation.js';
+const animation = createAnimation(document.querySelector('#stage'), { loop: true });
+animation.play();
+animation.pause();
+animation.seek(1.5);
+animation.reset();
+```
+
+Creation starts paused without applying values, using the same playback options,
+controls, and live `state` snapshots documented above. `onUpdate(time, values)` runs
+after DOM application; clock/frame injection is also supported. Target IDs match
+exact `id` attributes on the supplied SVG/HTML root or its descendants, including
+mixed HTML/SVG content. Missing or ambiguous IDs and invalid path targets throw
+at creation; empty tracks need no target. Targets must be mounted and measurable.
+
+`reset()` pauses and restores captured styles and paths without an update callback.
+It retains the sampled time, direction, and loop setting; `play()` resumes there,
+and `restart()` plays from the direction's starting boundary. Separate instances
+capture independent baselines. Exported animation uses the existing engine
+functions, preserving easing, paths, holds, timing, and full numeric precision.
+Strings are escaped for safe module embedding, and negative zero is retained.
+
+Serve the repository over HTTP and open `test/exportAnimation.browser.html` for
+the minimal SVG fixture and browser checks.
+
 ## Development
 
 Use Node.js 22 or newer. No dependencies, installation step, or build step are

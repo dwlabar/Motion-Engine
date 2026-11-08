@@ -10,8 +10,8 @@
 | T04 | SVG Path Geometry and Vertex Animation | DONE | Implemented dependency-free SVG command parsing into cubic subpaths, serialization, anchor editing with closed seams, and compatible path-track interpolation using existing easing. Original strings preserved at keyframes and holds; focused validation and boundary tests added. |
 | T05 | Playback Controller | DONE | Implemented play, pause, seek, reverse, restart, configurable looping/direction, readable state, evaluated callbacks, and injectable elapsed-time frame scheduling. Focused playback and scheduling tests added; timeline evaluation remains unchanged. |
 | T06 | Target Adapters | DONE | Implemented dependency-free SVG, HTML, and object adapters with snapshot application, baseline transform composition, fixed SVG center origins, validation, and restoration. Focused adapter/playback tests and desktop Edge geometry checks pass; review fixes completed. Core remains DOM-independent. |
-| T07 | Dependency-Free Animation Export | PLANNED (NEXT) | Support standalone JavaScript animation output without GSAP or external runtime dependencies. |
-| T08 | Compatibility and Performance Verification | PLANNED | Verify animation behavior against the existing GSAP editor, including transforms, vertex animation, timeline accuracy, export, and focused desktop/mobile performance checks. |
+| T07 | Dependency-Free Animation Export | DONE | Implemented standalone browser ES module output using shared engine functions, scoped SVG/HTML target resolution, paused playback/reset controls, precise safe serialization, generated-module parity tests, and a minimal SVG browser fixture. |
+| T08 | Compatibility and Performance Verification | PLANNED (NEXT) | Verify animation behavior against the existing GSAP editor, including transforms, vertex animation, timeline accuracy, export, and focused desktop/mobile performance checks. |
 
 ## Scope restrictions
 

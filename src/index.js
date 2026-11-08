@@ -1,4 +1,5 @@
 export { createTimeline } from './timeline.js';
+export { exportAnimation } from './exportAnimation.js';
 export { createPlaybackController } from './playbackController.js';
 export { createHTMLAdapter } from './htmlAdapter.js';
 export { createSVGAdapter } from './svgAdapter.js';
